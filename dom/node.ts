@@ -1,95 +1,90 @@
-export namespace NDom {
-  type TNodeList = Array<Node>;
-  type TNodeLikeList = Array<INodeLike>;
+export namespace ndom {
+    type TNodeList = Array<Node>;
+    type TNodeLikeList = Array<INodeLike>;
 
-  enum NodeType {
-    None,
-    Text,
-    Comment,
-    Element
-  }
-
-  interface INode {
-    type: NodeType;
-    name: string;
-    parent: INodeLike;
-    children: TNodeLikeList;
-  }
-
-  export interface INodeLike {
-    getParent(): INodeLike;
-    setParent<T extends INodeLike>(parent: T): void;
-    getChildren(): TNodeLikeList;
-    isEmptyChildren(): boolean;
-    appendChild<T extends INodeLike>(newChild: T): T;
-    getName(): string;
-  }
-
-  export class Node implements INodeLike {
-    constructor(private node: INode) {}
-
-    appendChild<T extends INodeLike>(newChild: T): T {
-      this.node.children.push(newChild);
-      newChild.setParent(this);
-      return newChild;
+    enum NodeType {
+        None,
+        Text,
+        Comment,
+        Element
     }
 
-    getChildren(): TNodeLikeList {
-      return this.node.children;
+    interface INode {
+        type: NodeType;
+        value: string;
+        parent: INodeLike;
+        children: TNodeLikeList;
     }
 
-    getParent(): INodeLike {
-      return this.node.parent;
+    interface INodeParent {
+        getChildren(): TNodeLikeList;
+        isEmptyChildren(): boolean;
+        appendChild<T extends INodeLike>(newChild: T): T;
     }
 
-    setParent<T extends INodeLike>(parent: T): void {
-      this.node.parent = parent;
+    interface INodeChild {
+        getParent(): INodeLike;
+        setParent<T extends INodeLike>(parent: T): void;
     }
 
-    getName(): string {
-      return this.node.name;
+    export interface INodeLike extends INodeChild, INodeParent {
+        getValue(): string;
     }
 
-    isEmptyChildren(): boolean {
-      return this.node.children.length === 0;
-    }
-  }
+    class Node implements INodeLike {
+        constructor(private node: INode) {}
 
-  export class NodeFactory {
-    private static new(): INode {
-      return {
-        type: NodeType.None,
-        name: ``,
-        children: [],
-        parent: new Node(<INode>{})
-      };
-    }
+        appendChild<T extends INodeLike>(newChild: T): T {
+            this.node.children.push(newChild);
+            newChild.setParent(this);
+            return newChild;
+        }
 
-    public static newElement(name: string): Node {
-      return new Node({
-        ...NodeFactory.new(),
-        type: NodeType.Text,
-        name
-      });
-    }
-  }
+        getChildren(): TNodeLikeList {
+            return this.node.children;
+        }
 
-  export class TreePrinter {
-    static bottomUp(node: NDom.INodeLike, level: number = 1): void {
-      if (!node.getParent()) return;
+        getParent(): INodeLike {
+            return this.node.parent;
+        }
 
-      console.log(Array(level).join("\t"), node.getName());
-      return TreePrinter.bottomUp(node.getParent(), level + 1);
+        setParent<T extends INodeLike>(parent: T): void {
+            this.node.parent = parent;
+        }
+
+        getValue(): string {
+            return this.node.value;
+        }
+
+        isEmptyChildren(): boolean {
+            return this.node.children.length === 0;
+        }
     }
 
-    static topBottom(node: NDom.INodeLike, level: number = 1): void {
-      console.log(Array(level).join("\t"), node.getName());
+    export class NodeFactory {
+        private static new(): INode {
+            return {
+                type: NodeType.None,
+                value: ``,
+                children: [],
+                parent: new Node(<INode>{})
+            };
+        }
 
-      if (node.isEmptyChildren()) return;
-
-      for (const child of node.getChildren()) {
-        TreePrinter.topBottom(child, level + 1);
-      }
+        static newElement(value: string): INodeLike {
+            return new Node({
+                ...NodeFactory.new(),
+                value,
+                type: NodeType.Element,
+            })
+        }
+    
+        static newText(value: string): INodeLike {
+            return new Node({
+                ...NodeFactory.new(),
+                value,
+                type: NodeType.Text,
+            });
+        }
     }
-  }
 }
